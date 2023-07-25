@@ -1,24 +1,31 @@
 #include "pDCorTest.h"
 
 // [[Rcpp::export]]
-StringVector matrix_to_string (StringMatrix sep_vectors)
+arma::vec matrix_to_string (arma::mat sep_vectors)
 {
-  int row_n = sep_vectors.nrow();
-  StringVector con_string (row_n);
-  for (int i = 0; i < row_n; i++)
+  int row_n = sep_vectors.n_rows;
+  int col_n = sep_vectors.n_cols;
+  arma::vec con_string(row_n);
+  
+  for(int i = 0; i < row_n; i++)
   {
-    //Concatenates each row as a singular element of a vector
-    con_string[i] = collapse(sep_vectors(i,_));
+    double counter = 0;
+    for(int j = 0; j < col_n; j++)
+    {
+      counter = counter + sep_vectors(i,j) * pow(10,col_n - j - 1);
+      
+    }
+    con_string(i) = counter;
   }
   return con_string;
 }
 
 // [[Rcpp::export]]
-double get_G2_one(StringVector A, StringVector B, int tot_Au_size, int tot_Bu_size)
+double get_G2_one(arma::vec A, arma::vec B, int tot_Au_size, int tot_Bu_size)
 {
   //Contingency Table
-  StringVector A_uniq = unique(A);
-  StringVector B_uniq = unique(B);
+  arma::vec A_uniq = unique(A);
+  arma::vec B_uniq = unique(B);
   
   int Au_size = A_uniq.size();
   int Bu_size = B_uniq.size();
@@ -41,7 +48,7 @@ double get_G2_one(StringVector A, StringVector B, int tot_Au_size, int tot_Bu_si
       }
     }
   }
-
+  
   
   //Expected counts
   arma::rowvec rowz = arma::sum(O, 0);
@@ -66,25 +73,29 @@ double get_G2_one(StringVector A, StringVector B, int tot_Au_size, int tot_Bu_si
   return 2*G2;
 }
 
+
 // [[Rcpp::export]]
-double get_G2_all(StringVector A, StringVector B, StringVector S)
+double get_G2_all(arma::vec A, arma::vec B, arma::vec S)
 {
+  arma::vec A_uniq = unique(A);
+  arma::vec B_uniq = unique(B);
+  arma::vec S_uniq = unique(S);
   
-  StringVector S_uniq = unique(S);
+  int tot_Au_size = A_uniq.size();
+  int tot_Bu_size = B_uniq.size();
   int Su_size = S_uniq.size();
-  arma::vec G_squares (Su_size);
+  int S_size = S.size();
   
-  int tot_Au_size = unique(A).size();
-  int tot_Bu_size = unique(B).size();
+  arma::vec G_squares (Su_size);
   
   //Calculate for each level of S
   for (int i = 0; i < Su_size; i++)
   {
     
-    StringVector A_sub;
-    StringVector B_sub;
+    NumericVector A_sub;
+    NumericVector B_sub;
     
-    for (int j = 0; j < S.size(); j++)
+    for (int j = 0; j < S_size; j++)
     {
       if (S[j] == S_uniq[i])
       {
@@ -100,32 +111,36 @@ double get_G2_all(StringVector A, StringVector B, StringVector S)
 }
 
 // [[Rcpp::export]]
-List condInttestdis(StringMatrix df, const size_t &i,const size_t &j,
-                     const arma::uvec &k, const double &signif_level)
+List condInttestdis(arma::mat df, const size_t &i,const size_t &j,
+                    const arma::uvec &k, const double &signif_level)
 {
   size_t k_size = k.size();
   
   //Setting up vectors and conditioning set
-  StringVector A = df(_,i);
-  StringVector B = df(_,j);
-  StringMatrix S_m(df.nrow(), k_size);
+  arma::vec A = df.col(i);
+  arma::vec B = df.col(j);
+  arma::mat S_m(df.n_rows, k_size);
+  
+  arma::vec A_u = unique(A);
+  arma::vec B_u = unique(A);
   
   int S_df = 1;
   
   //Looping through to get the elements and df of conditioning set
   for (size_t j = 0; j < k_size; j++)
   {
-    StringVector con_col = df(_ , k(j));
-    S_m(_, j) = con_col;
-    S_df = S_df * unique(con_col).size();
+    arma::vec con_col = df.col(k(j));
+    S_m.col(j) = con_col;
+    arma::vec con_col_u = unique(con_col);
+    S_df = S_df * con_col_u.size();
   }
   
   //Convert to one vector to examine the different vector levels
-  StringVector S = matrix_to_string(S_m);
+  arma::vec S = matrix_to_string(S_m);
   
   //Calculating the relevant info
   double statistic = get_G2_all(A, B, S);
-  int dof = (unique(A).size() - 1) * (unique(B).size() - 1) * S_df;
+  int dof = (A_u.size() - 1) * (B_u.size() - 1) * S_df;
   double cutoff = R::qchisq(1-signif_level,dof,true,false);
   bool accept_H0 = std::abs(statistic) <= cutoff;
   double pval = 1 - R::pchisq(statistic, dof, true,false);

@@ -6,13 +6,13 @@
 
 using namespace Rcpp;
 
-StringVector matrix_to_string (StringMatrix sep_vectors);
+arma::vec matrix_to_string (arma::mat sep_vectors);
 
-double get_G2_one(StringVector A, StringVector B, int tot_Au_size, int tot_Bu_size);
+double get_G2_one(arma::vec A, arma::vec B, int tot_Au_size, int tot_Bu_size);
 
-double get_G2_all(StringVector A, StringVector B, StringVector S);
+double get_G2_all(arma::vec A, arma::vec B, arma::vec S);
 
-List condInttestdis(StringMatrix df, const size_t &i,const size_t &j,
-                     const arma::uvec &k, const double &signif_level);
+List condInttestdis(arma::mat df, const size_t &i,const size_t &j,
+                    const arma::uvec &k, const double &signif_level);
 
 #endif

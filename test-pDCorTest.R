@@ -3,7 +3,7 @@ suppressMessages(library(bnlearn))
 library(Rcpp)
 sourceCpp("pDCorTest.cpp")
 
-asia_mat <- as.matrix(asia)
+asia_mat <- data.matrix(asia)
 asia_coln <- colnames(asia)
 
 # Testing Same P-Values -------------------------------------------------------------------
